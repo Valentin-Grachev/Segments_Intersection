@@ -27,6 +27,7 @@ bool NaiveAlgorithm(const Segment *segments, int size, Segment& a, Segment& b, i
 		}
 	}
 
+	return false;
 }
 
 
@@ -34,7 +35,7 @@ bool NaiveAlgorithm(const Segment *segments, int size, Segment& a, Segment& b, i
 
 // јлгоритм поиска пары пересекающихс€ отрезков методом заметающей пр€мой с использованием 2-3 дерева
 // - возвращает true, если пересечение есть, в ссылки записывает значени€ пересекающихс€ отрезков
-bool Tree23Algorithm(Segment* segments, int size, Segment& a, Segment& b, int &time)
+bool Tree23Algorithm(const Segment* segments, int size, Segment& a, Segment& b, int &time)
 {
 	time = 0;
 	Tree23 tree;
@@ -45,14 +46,29 @@ bool Tree23Algorithm(Segment* segments, int size, Segment& a, Segment& b, int &t
 	for (int i = 0; i < size; i++)
 	{
 		pair<PointX, Segment> _startSegm;
-		_startSegm.first = segments[i].start;
+		_startSegm.first = ToPointX(segments[i].start);
 		_startSegm.second = segments[i];
 
 		pair<PointX, Segment> _endSegm;
-		_endSegm.first = segments[i].end;
+		_endSegm.first = ToPointX(segments[i].end);
 		_endSegm.second = segments[i];
 
+		auto iter = _map.find(_startSegm.first);
+		if (iter != _map.end())
+		{
+			a = iter->second;
+			b = _startSegm.second;
+			return true;
+		}
 		_map.insert(_startSegm);
+
+		iter = _map.find(_endSegm.first);
+		if (iter != _map.end())
+		{
+			a = iter->second;
+			b = _endSegm.second;
+			return true;
+		}
 		_map.insert(_endSegm);
 	}
 
@@ -60,7 +76,7 @@ bool Tree23Algorithm(Segment* segments, int size, Segment& a, Segment& b, int &t
 	{
 		bool isStartSegm = true;
 		PointX point = iter->first;
-		Point key(point);
+		Point key = ToPoint(point);
 		Segment checkableSegm = iter->second;
 		Segment prevSegm, nextSegm;
 
@@ -69,34 +85,51 @@ bool Tree23Algorithm(Segment* segments, int size, Segment& a, Segment& b, int &t
 
 		if (isStartSegm) // ≈сли точка €вл€етс€ началом отрезка
 		{
-			// ¬ставл€ем новый отрезок в дерево
-			tree.Insert(checkableSegm, key);
-
-			// ѕровер€ем на пересечение нового отрезка с верхним и нижним
-			if (tree.TryGetPrevious(key, prevSegm) && tree.TryGetNext(key, nextSegm))
+			// ≈сли в дереве уже есть заданный ключ, то это пересечение 
+			// - случай, когда два отрезка исход€т из одной точки
+			if (tree.TryFind(key, prevSegm, time))
 			{
+				a = checkableSegm;
+				b = prevSegm;
+				return true;
+			}
+
+
+			// ¬ставл€ем новый отрезок в дерево
+			tree.Insert(checkableSegm, key, time);
+			
+
+			// ѕровер€ем на пересечение нового отрезка с нижним
+			if (tree.TryGetPrevious(key, prevSegm, time))
+			{
+				time++;
 				if (CheckIntersection(checkableSegm, prevSegm))
 				{
-					time++;
 					a = checkableSegm;
 					b = prevSegm;
 					return true;
-					
 				}
-				else if (CheckIntersection(checkableSegm, nextSegm))
+			}
+
+
+			// ѕровер€ем на пересечение нового отрезка с верхним
+			if (tree.TryGetNext(key, nextSegm, time))
+			{
+				time++;
+				if (CheckIntersection(checkableSegm, nextSegm))
 				{
-					time++;
 					a = checkableSegm;
 					b = nextSegm;
 					return true;
 				}
+				
 			}
 		}
 
 		else // ≈сли точка не €вл€етс€ началом отрезка
 		{
 			// ѕровер€ем на пересечение верхний и нижний отрезки
-			if (tree.TryGetPrevious(key, prevSegm) && tree.TryGetNext(key, nextSegm))
+			if (tree.TryGetPrevious(key, prevSegm, time) && tree.TryGetNext(key, nextSegm, time))
 			{
 				if (CheckIntersection(prevSegm, nextSegm))
 				{
@@ -108,13 +141,13 @@ bool Tree23Algorithm(Segment* segments, int size, Segment& a, Segment& b, int &t
 			}
 
 			// ”дал€ем отрезок из дерева
-			tree.Remove(key);
+			tree.Remove(key, time);
 		}
 
 	}
 
 
-
+	return false;
 }
 
 

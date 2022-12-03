@@ -41,7 +41,7 @@ struct Node
 		else if (p2 == node) p2 = nullptr;
 		else if (p3 == node) p3 = nullptr;
 		else if (p4 == node) p4 = nullptr;
-		delete node;
+		//delete node;
 		childCount--;
 		RestoreState();
 		if (pParent != nullptr) pParent->RestoreState();
@@ -75,10 +75,16 @@ private:
 
 	void RestoreState()
 	{
+		if (this == nullptr) throw -1;
 		// "Утрамбовываем" указатели влево
-		if (p1 == nullptr) { p1 = p2; p2 = p3; p3 = p4; }
-		else if (p2 == nullptr) { p2 = p3; p3 = p4; }
-		else if (p3 == nullptr) p3 = p4;
+		try
+		{
+			if (p1 == nullptr) { p1 = p2; p2 = p3; p3 = p4; }
+			else if (p2 == nullptr) { p2 = p3; p3 = p4; }
+			else if (p3 == nullptr) p3 = p4;
+		}
+		catch(...) {}
+		
 
 		// Сортируем детей в порядке возрастания
 		if (childCount == 2)
@@ -118,21 +124,21 @@ private:
 
 	void Split(Node* splitableNode);// Разделить вершину, имеющую 4 потомка
 	void Merge(Node* mergableNode); // Слить указанную вершину с соседней
-	Node* GetLeaf(Point key);		// Получить вершину, ближайшую к заданному ключу
+	Node* GetLeaf(Point key, int &time);		// Получить вершину, ближайшую к заданному ключу
 
 public:
 
 	Tree23();
 
 	bool IsEmpty() { return root == nullptr; }
-	void Insert(Segment segment, Point key);
-	void Remove(Point key);
-	bool TryFind(Point key, Segment &result);
+	void Insert(Segment segment, Point key, int &time);
+	void Remove(Point key, int &time);
+	bool TryFind(Point key, Segment &result, int &time);
 
 	Segment GetMin();
 	Segment GetMax();
-	bool TryGetNext(Point relativeToKey, Segment &result); // Получить отрезок, находящийся выше заданного
-	bool TryGetPrevious(Point relativeToKey, Segment &result); // Получить отрезок, находящийся ниже заданного
+	bool TryGetNext(Point relativeToKey, Segment &result, int &time); // Получить отрезок, находящийся выше заданного
+	bool TryGetPrevious(Point relativeToKey, Segment &result, int &time); // Получить отрезок, находящийся ниже заданного
 
 
 
@@ -204,7 +210,7 @@ inline Tree23::Tree23()
 	root = nullptr;
 }
 
-inline Node* Tree23::GetLeaf(Point key)
+inline Node* Tree23::GetLeaf(Point key, int &time)
 {
 	if (root == nullptr) return nullptr;
 
@@ -224,13 +230,16 @@ inline Node* Tree23::GetLeaf(Point key)
 			else if (key <= current->key2) current = current->p2;
 			else current = current->p3;
 		}
+		time++;
 
 	}
 	return current;
 }
 
-inline void Tree23::Insert(Segment segment, Point key)
+inline void Tree23::Insert(Segment segment, Point key, int &time)
 {
+	
+
 	// Создали новый лист со значением
 	Node* newLeaf = new Node();
 	newLeaf->key1 = key;
@@ -238,7 +247,7 @@ inline void Tree23::Insert(Segment segment, Point key)
 	newLeaf->value = segment;
 	newLeaf->childCount = 0;
 
-	Node* leafForInsert = GetLeaf(key);
+	Node* leafForInsert = GetLeaf(key, time);
 
 	// Если дерево пустое
 	if (root == nullptr) root = newLeaf;
@@ -261,7 +270,7 @@ inline void Tree23::Insert(Segment segment, Point key)
 	}
 }
 
-inline void Tree23::Remove(Point key)
+inline void Tree23::Remove(Point key, int &time)
 {
 	if (root->childCount == 0)
 	{
@@ -271,7 +280,7 @@ inline void Tree23::Remove(Point key)
 	}
 
 
-	Node* res = GetLeaf(key);
+	Node* res = GetLeaf(key, time);
 	Node* parent = res->pParent;
 	parent->DetachNode(res);
 	if (parent->childCount == 1 && parent != root) Merge(parent);
@@ -283,9 +292,10 @@ inline void Tree23::Remove(Point key)
 	}
 }
 
-inline bool Tree23::TryFind(Point key, Segment& result)
+inline bool Tree23::TryFind(Point key, Segment& result, int &time)
 {
-	Node *res = GetLeaf(key);
+	if (IsEmpty()) return false;
+	Node *res = GetLeaf(key, time);
 	if (res->key1 == key) {
 		result = res->value;
 		return true;
@@ -310,10 +320,10 @@ inline Segment Tree23::GetMax()
 	return current->value;
 }
 
-inline bool Tree23::TryGetNext(Point relativeToKey, Segment& result)
+inline bool Tree23::TryGetNext(Point relativeToKey, Segment& result, int &time)
 {
 	if (root == nullptr || root->childCount == 0) return false;
-	Node* currentNode = GetLeaf(relativeToKey);
+	Node* currentNode = GetLeaf(relativeToKey, time);
 	int previousPointerNumber = currentNode->GetPointerNumber();
 	currentNode = currentNode->pParent;
 
@@ -323,23 +333,29 @@ inline bool Tree23::TryGetNext(Point relativeToKey, Segment& result)
 		if (currentNode == root) return false; // Уперлись вправо в корне - следующего элемента нет
 		previousPointerNumber = currentNode->GetPointerNumber();
 		currentNode = currentNode->pParent;
+		time++;
 	}
 
 	// Направо есть проход - идем в него
 	currentNode = currentNode->GetPointerByNumber(previousPointerNumber + 1);
+	time++;
 
 	// Далее идем в самый низ по самым левым связям
 	while (currentNode->p1 != nullptr)
+	{
 		currentNode = currentNode->p1;
+		time++;
+	}
+		
 
 	result = currentNode->value;
 	return true;
 }
 
-inline bool Tree23::TryGetPrevious(Point relativeToKey, Segment& result)
+inline bool Tree23::TryGetPrevious(Point relativeToKey, Segment& result, int &time)
 {
 	if (root == nullptr || root->childCount == 0) return false;
-	Node* currentNode = GetLeaf(relativeToKey);
+	Node* currentNode = GetLeaf(relativeToKey, time);
 	int previousPointerNumber = currentNode->GetPointerNumber();
 	currentNode = currentNode->pParent;
 
@@ -349,14 +365,20 @@ inline bool Tree23::TryGetPrevious(Point relativeToKey, Segment& result)
 		if (currentNode == root) return false; // Уперлись влево в корне - предыдущего элемента нет
 		previousPointerNumber = currentNode->GetPointerNumber();
 		currentNode = currentNode->pParent;
+		time++;
 	}
 
 	// Налево есть проход - идем в него
 	currentNode = currentNode->GetPointerByNumber(previousPointerNumber - 1);
+	time++;
 
 	// Далее идем в самый низ по самым правым связям
 	while (currentNode->p1 != nullptr)
+	{
 		currentNode = currentNode->GetPointerByNumber(currentNode->childCount);
+		time++;
+	}
+		
 
 	result = currentNode->value;
 	return true;

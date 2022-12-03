@@ -8,20 +8,6 @@ struct Point
 	double y;
 
 	
-	Point() = default;
-	Point(PointX other)
-	{
-		x = other.x;
-		y = other.y;
-	}
-
-	Point operator=(PointX other)
-	{
-		x = other.x;
-		y = other.y;
-		return *this;
-	}
-
 
 	bool operator<(Point a) {
 		if (this->y != a.y) return this->y < a.y;
@@ -53,45 +39,45 @@ struct PointX
 	double x;
 	double y;
 
-	PointX() = default;
-	PointX(Point other)
-	{
-		x = other.x;
-		y = other.y;
-	}
 
 
-	PointX operator=(Point other)
-	{
-		x = other.x;
-		y = other.y;
-		return *this;
-	}
-
-	bool operator<(Point a) {
+	bool operator<(const PointX &a) const {
 		if (this->x != a.x) return this->x < a.x;
 		else return y < a.y;
 	}
 
-	bool operator<=(Point a) {
+	bool operator<=(const PointX &a) const {
 		if (this->x != a.x) return this->x <= a.x;
 		else return y <= a.y;
 	}
 
-	bool operator>(Point a) {
+	bool operator>(const PointX &a) const {
 		if (this->x != a.x) return this->x > a.x;
 		else return y > a.y;
 	}
 
-	bool operator==(Point a) {
+	bool operator==(const PointX &a) const {
 		return x == a.x && y == a.y;
 	}
 
 
 };
 
+PointX ToPointX(Point point)
+{
+	PointX res;
+	res.x = point.x;
+	res.y = point.y;
+	return res;
+}
 
-
+Point ToPoint(PointX point)
+{
+	Point res;
+	res.x = point.x;
+	res.y = point.y;
+	return res;
+}
 
 struct Segment
 {
@@ -143,7 +129,7 @@ Segment* EnterSegments(int& size)
 	return segments;
 }
 
-Segment* GetRandomSegments(int size, int min, int max)
+Segment* GenRandomSegments(int size, int min, int max)
 {
 	srand(time(NULL));
 	Segment* segments = new Segment[size];
@@ -164,6 +150,44 @@ Segment* GetRandomSegments(int size, int min, int max)
 	return segments;
 }
 
+Segment* GenParallelSegments1(int size) // Отрезки лестницей
+{
+	int segmLength = 10;
+	srand(time(NULL));
+	Segment* segments = new Segment[size];
+
+	for (int i = 0; i < size; i++)
+	{
+		Point a, b;
+		a.x = i;
+		a.y = i;
+		b.x = i + segmLength;
+		b.y = i;
+		Segment segment(a, b);
+		segments[i] = segment;
+	}
+
+	return segments;
+}
+
+Segment* GenParallelSegments2(int size) // Отрезки имеют одинаковую абсциссу точки начала
+{
+	srand(time(NULL));
+	Segment* segments = new Segment[size];
+
+	for (int i = 0; i < size; i++)
+	{
+		Point a, b;
+		a.x = 0;
+		a.y = i;
+		b.x = 1 + i;
+		b.y = 1 + i;
+		Segment segment(a, b);
+		segments[i] = segment;
+	}
+
+	return segments;
+}
 
 // Вывести на экран отрезки
 void ShowSegments(const Segment* segments, int size)
