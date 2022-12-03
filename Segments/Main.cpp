@@ -8,12 +8,12 @@ int main()
 {
 	setlocale(LC_ALL, "ru");
 	
-	int size = 5000, time = 0;
+	int size = 60, time = 0;
 	Segment a, b;
 
 	//Segment* segments = GenRandomSegments(size, -100000, 100000); // Случайные отрезки
-	//Segment* segments = GenParallelSegments1(size); // Отрезки расставлены лесенкой
-	Segment* segments = GenParallelSegments2(size); // Отрезки, начало которых находится в точке с х = 0
+	Segment* segments = GenParallelSegments2(size); // Отрезки расставлены лесенкой
+	//Segment* segments = GenParallelSegments2(size); // Отрезки, начало которых находится в точке с х = 0
 
 
 	cout << "Наивный алгоритм: " << endl;
